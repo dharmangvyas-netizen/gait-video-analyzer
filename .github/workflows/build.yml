@@ -1,0 +1,31 @@
+name: Build installers
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Put files into folders
+        shell: bash
+        run: |
+          mkdir -p app build scripts license-server
+          [ -f index.html ] && mv index.html app/
+          [ -f icon.png ] && cp icon.png app/icon.png && mv icon.png build/icon.png
+          [ -f icon.ico ] && mv icon.ico build/
+          [ -f icon.icns ] && mv icon.icns build/
+          [ -f check-config.js ] && mv check-config.js scripts/
+          [ -f worker.js ] && mv worker.js license-server/
+          [ -f app/icon.png ] || cp build/icon.png app/icon.png
+          ls -R app build scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GaitVideoAnalyzer-Windows-Setup
+          path: dist/*.exe
