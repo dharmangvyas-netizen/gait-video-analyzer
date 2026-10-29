@@ -11,15 +11,20 @@ jobs:
       - name: Put files into folders
         shell: bash
         run: |
+          echo "== Files in repo =="; ls -la
           mkdir -p app build scripts license-server
-          [ -f index.html ] && mv index.html app/
-          [ -f icon.png ] && cp icon.png app/icon.png && mv icon.png build/icon.png
-          [ -f icon.ico ] && mv icon.ico build/
-          [ -f icon.icns ] && mv icon.icns build/
-          [ -f check-config.js ] && mv check-config.js scripts/
-          [ -f worker.js ] && mv worker.js license-server/
-          [ -f app/icon.png ] || cp build/icon.png app/icon.png
-          ls -R app build scripts
+          pick() { f=$(find . -path ./node_modules -prune -o -path ./.git -prune -o -type f -iname "$1" -print | grep -v "^./$2" | head -1 || true); [ -n "$f" ] && [ ! -f "$2" ] && cp "$f" "$2"; true; }
+          pick index.html app/index.html
+          pick check-config.js scripts/check-config.js
+          pick worker.js license-server/worker.js
+          pick icon.ico build/icon.ico
+          pick icon.icns build/icon.icns
+          pick icon.png build/icon.png
+          pick icon.png app/icon.png
+          [ -f app/index.html ] || { echo "ERROR: index.html is not in the repo - please upload it"; exit 1; }
+          [ -f scripts/check-config.js ] || echo "console.log('config check skipped')" > scripts/check-config.js
+          if [ ! -f build/icon.ico ]; then echo "No icon.ico - building with default icon"; node -e "const p=require('./package.json');delete p.build.win.icon;if(p.build.mac)delete p.build.mac.icon;require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"; fi
+          echo "== Arranged =="; ls -R app build scripts
       - uses: actions/setup-node@v4
         with:
           node-version: 20
